@@ -197,6 +197,12 @@ function broadcastToAdmins(data) {
     }
   });
 }
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/audience.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
 
 // Start the server
 const PORT = process.env.PORT || 3001;
