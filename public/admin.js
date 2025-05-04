@@ -6,6 +6,7 @@ const socket = new WebSocket(wsUrl);
 // DOM elements
 const connectionStatus = document.getElementById('connection-status');
 const audienceCount = document.getElementById('audience-count');
+const audienceList = document.getElementById('audience-list');
 const codeInput = document.getElementById('code-input');
 const selectBtn = document.getElementById('select-btn');
 const randomBtn = document.getElementById('random-btn');
@@ -36,12 +37,28 @@ socket.onmessage = (event) => {
   switch(data.type) {
     case 'admin-registered':
       audienceCount.textContent = `${data.activeAudience} audience members connected`;
+      
+      // Initialize audience list if provided
+      if (data.audienceList) {
+        updateAudienceList(data.audienceList);
+      }
+      break;
+      
+    case 'audience-updated':
+      // Update the audience list UI
+      if (data.audienceList) {
+        updateAudienceList(data.audienceList);
+        audienceCount.textContent = `${data.audienceList.length} audience members connected`;
+      }
       break;
       
     case 'audience-found':
       selectionStatus.textContent = `Audience member with code ${data.code} selected. Waiting for them to accept...`;
       selectionStatus.classList.add('success');
       currentCode = data.code;
+      
+      // Highlight the selected audience item
+      highlightSelectedAudience(data.code);
       break;
       
     case 'audience-not-found':
@@ -57,6 +74,9 @@ socket.onmessage = (event) => {
       selectionStatus.textContent = `Stream active for code ${data.code}`;
       noStreamMessage.style.display = 'none';
       endStreamBtn.disabled = false;
+      
+      // Update the streaming status in the audience list
+      updateStreamingStatus(data.code, true);
       break;
       
     case 'stream-offer':
@@ -81,6 +101,81 @@ socket.onmessage = (event) => {
       break;
   }
 };
+
+// Update the audience list in the UI
+function updateAudienceList(audienceMembers) {
+  // Clear existing list
+  audienceList.innerHTML = '';
+  
+  if (audienceMembers.length === 0) {
+    audienceList.innerHTML = '<p class="empty-list-message">No audience members connected yet</p>';
+    return;
+  }
+  
+  // Sort audience members by code
+  audienceMembers.sort((a, b) => a.code.localeCompare(b.code));
+  
+  // Create a list item for each audience member
+  audienceMembers.forEach(member => {
+    const audienceItem = document.createElement('div');
+    audienceItem.className = 'audience-item';
+    audienceItem.dataset.code = member.code;
+    
+    if (member.code === currentCode) {
+      audienceItem.classList.add('selected');
+    }
+    
+    if (member.streaming) {
+      audienceItem.classList.add('streaming');
+    }
+    
+    audienceItem.innerHTML = `
+      <span class="audience-code">${member.code}</span>
+      <span class="audience-status ${member.streaming ? 'streaming' : ''}">${member.streaming ? 'Streaming' : 'Ready'}</span>
+    `;
+    
+    // Add click handler to select this audience member
+    audienceItem.addEventListener('click', () => {
+      codeInput.value = member.code;
+      selectBtn.click();
+    });
+    
+    audienceList.appendChild(audienceItem);
+  });
+}
+
+// Highlight the selected audience item
+function highlightSelectedAudience(code) {
+  // Remove 'selected' class from all items
+  const items = audienceList.querySelectorAll('.audience-item');
+  items.forEach(item => item.classList.remove('selected'));
+  
+  // Add 'selected' class to the matching item
+  const selectedItem = audienceList.querySelector(`.audience-item[data-code="${code}"]`);
+  if (selectedItem) {
+    selectedItem.classList.add('selected');
+    // Scroll to the selected item
+    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// Update the streaming status of an audience member
+function updateStreamingStatus(code, isStreaming) {
+  const item = audienceList.querySelector(`.audience-item[data-code="${code}"]`);
+  if (item) {
+    const statusSpan = item.querySelector('.audience-status');
+    
+    if (isStreaming) {
+      item.classList.add('streaming');
+      statusSpan.classList.add('streaming');
+      statusSpan.textContent = 'Streaming';
+    } else {
+      item.classList.remove('streaming');
+      statusSpan.classList.remove('streaming');
+      statusSpan.textContent = 'Ready';
+    }
+  }
+}
 
 // Handle connection errors
 socket.onerror = (error) => {
@@ -115,20 +210,22 @@ selectBtn.addEventListener('click', () => {
 
 // Handle random selection button
 randomBtn.addEventListener('click', () => {
-  // Request server to select a random audience member
-  // For the MVP, we just generate a random code
-  // In a full version, this would ask the server for available codes
+  // Get all available audience codes from the UI
+  const audienceItems = audienceList.querySelectorAll('.audience-item:not(.streaming)');
   
-  // Generate a random 4-character code
-  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 4; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    code += characters.charAt(randomIndex);
+  if (audienceItems.length === 0) {
+    selectionStatus.textContent = 'No available audience members to select';
+    selectionStatus.classList.add('error');
+    return;
   }
   
-  codeInput.value = code;
-  selectBtn.click(); // Trigger the select button click
+  // Select a random audience item
+  const randomIndex = Math.floor(Math.random() * audienceItems.length);
+  const randomCode = audienceItems[randomIndex].dataset.code;
+  
+  // Set the input value and trigger selection
+  codeInput.value = randomCode;
+  selectBtn.click();
 });
 
 // Handle fullscreen button
@@ -231,6 +328,12 @@ function endStream() {
   
   noStreamMessage.style.display = 'block';
   endStreamBtn.disabled = true;
-  currentCode = null;
+  
+  // Update UI to reflect stream ending
+  if (currentCode) {
+    updateStreamingStatus(currentCode, false);
+    currentCode = null;
+  }
+  
   selectionStatus.textContent = 'Stream ended';
 }

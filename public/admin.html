@@ -16,25 +16,38 @@
       </div>
     </div>
     
-    <div class="code-selection">
-      <h2>Select Audience Member</h2>
-      <div class="code-input-group">
-        <input type="text" id="code-input" placeholder="Enter 4-digit code" maxlength="4">
-        <button id="select-btn">Select</button>
-        <button id="random-btn">Random Selection</button>
+    <div class="admin-panels-container">
+      <div class="admin-left-panel">
+        <div class="audience-list-container">
+          <h2>Audience Members</h2>
+          <div id="audience-list">
+            <p class="empty-list-message">No audience members connected yet</p>
+          </div>
+        </div>
+        
+        <div class="code-selection">
+          <h2>Select Audience Member</h2>
+          <div class="code-input-group">
+            <input type="text" id="code-input" placeholder="Enter 4-digit code" maxlength="4">
+            <button id="select-btn">Select</button>
+            <button id="random-btn">Random Selection</button>
+          </div>
+          <p id="selection-status"></p>
+        </div>
       </div>
-      <p id="selection-status"></p>
-    </div>
-    
-    <div class="stream-container">
-      <h2>Live Stream</h2>
-      <div class="video-container">
-        <video id="remote-video" autoplay playsinline></video>
-        <div id="no-stream-message">No active stream</div>
-      </div>
-      <div class="stream-controls">
-        <button id="fullscreen-btn">Fullscreen</button>
-        <button id="end-stream-btn" disabled>End Stream</button>
+      
+      <div class="admin-right-panel">
+        <div class="stream-container">
+          <h2>Live Stream</h2>
+          <div class="video-container">
+            <video id="remote-video" autoplay playsinline></video>
+            <div id="no-stream-message">No active stream</div>
+          </div>
+          <div class="stream-controls">
+            <button id="fullscreen-btn">Fullscreen</button>
+            <button id="end-stream-btn" disabled>End Stream</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

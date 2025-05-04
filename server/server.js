@@ -33,6 +33,18 @@ function generateUniqueCode() {
   return code;
 }
 
+// Get a list of all active audience codes
+function getAudienceList() {
+  const audienceList = [];
+  for (const [_, info] of audiences.entries()) {
+    audienceList.push({
+      code: info.code,
+      streaming: info.streaming
+    });
+  }
+  return audienceList;
+}
+
 // WebSocket connection handler
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -47,6 +59,12 @@ wss.on('connection', (ws) => {
         audiences.set(ws, { code, streaming: false });
         ws.send(JSON.stringify({ type: 'code-assigned', code }));
         console.log(`Assigned code ${code} to an audience member`);
+        
+        // Notify admins about new audience member
+        broadcastToAdmins({
+          type: 'audience-updated',
+          audienceList: getAudienceList()
+        });
         break;
         
       case 'select-code':
@@ -99,6 +117,13 @@ wss.on('connection', (ws) => {
             type: 'stream-active',
             code: info.code
           });
+          
+          // Update audience list for admins
+          broadcastToAdmins({
+            type: 'audience-updated',
+            audienceList: getAudienceList()
+          });
+          
           console.log(`Stream started for code ${info.code}`);
         }
         break;
@@ -162,10 +187,14 @@ wss.on('connection', (ws) => {
       case 'register-admin':
         // Mark this connection as an admin
         ws.isAdmin = true;
+        
+        // Send current audience list to the new admin
         ws.send(JSON.stringify({ 
           type: 'admin-registered',
-          activeAudience: audiences.size
+          activeAudience: audiences.size,
+          audienceList: getAudienceList()
         }));
+        
         console.log('Admin registered');
         break;
     }
@@ -184,6 +213,12 @@ wss.on('connection', (ws) => {
         type: 'audience-disconnected',
         code
       });
+      
+      // Update audience list for admins
+      broadcastToAdmins({
+        type: 'audience-updated',
+        audienceList: getAudienceList()
+      });
     }
     console.log('Client disconnected');
   });
@@ -197,9 +232,11 @@ function broadcastToAdmins(data) {
     }
   });
 }
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/audience.html'));
 });
+
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
