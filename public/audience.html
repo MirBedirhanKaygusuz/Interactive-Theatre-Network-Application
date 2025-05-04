@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Theatre</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="audience">
+  <div id="welcome-screen">
+    <h1>Interactive Theatre Experience</h1>
+    <p>Welcome! You'll be assigned a unique code. If your code is called during the show, you'll have a chance to participate!</p>
+    <button id="get-code-btn">Get My Code</button>
+  </div>
+  
+  <div id="code-screen" class="hidden">
+    <h1>Your Code</h1>
+    <div id="code-display"></div>
+    <p>Keep this page open during the show. If your code is announced, you'll be prompted to participate!</p>
+  </div>
+  
+  <div id="selected-screen" class="hidden">
+    <h1>You've Been Selected!</h1>
+    <p>The production team would like to connect to your camera and microphone.</p>
+    <button id="allow-media-btn">Allow Access</button>
+  </div>
+  
+  <div id="streaming-screen" class="hidden">
+    <h1>You're Live!</h1>
+    <video id="local-video" autoplay muted></video>
+    <p>Your camera feed is now being shown on the main screen.</p>
+  </div>
+
+  <script src="audience.js"></script>
+</body>
+</html>

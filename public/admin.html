@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Interactive Theatre</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="admin">
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>Production Control Panel</h1>
+      <div class="status-indicator">
+        <span id="connection-status">Connecting...</span>
+        <span id="audience-count">0 audience members connected</span>
+      </div>
+    </div>
+    
+    <div class="code-selection">
+      <h2>Select Audience Member</h2>
+      <div class="code-input-group">
+        <input type="text" id="code-input" placeholder="Enter 4-digit code" maxlength="4">
+        <button id="select-btn">Select</button>
+        <button id="random-btn">Random Selection</button>
+      </div>
+      <p id="selection-status"></p>
+    </div>
+    
+    <div class="stream-container">
+      <h2>Live Stream</h2>
+      <div class="video-container">
+        <video id="remote-video" autoplay playsinline></video>
+        <div id="no-stream-message">No active stream</div>
+      </div>
+      <div class="stream-controls">
+        <button id="fullscreen-btn">Fullscreen</button>
+        <button id="end-stream-btn" disabled>End Stream</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
