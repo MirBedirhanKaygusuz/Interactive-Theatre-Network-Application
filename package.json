@@ -1,17 +1,27 @@
 {
-    "name": "theatre-interaction-mvp",
-    "version": "1.0.0",
-    "description": "Interactive audience selection system for theatre performances",
-    "main": "server.js",
-    "scripts": {
-      "start": "node server.js",
-      "dev": "nodemon server.js"
-    },
-    "dependencies": {
-      "express": "^4.18.2",
-      "ws": "^8.15.1"
-    },
-    "devDependencies": {
-      "nodemon": "^3.0.3"
-    }
+  "name": "interactive-theatre-network-application",
+  "version": "1.0.0",
+  "description": "A local network-based web application for live theatre performances enabling real-time audience interaction",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "theatre",
+    "interactive",
+    "webrtc",
+    "websocket",
+    "audience"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
+}
