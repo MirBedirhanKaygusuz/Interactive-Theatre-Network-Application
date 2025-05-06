@@ -19,6 +19,7 @@ const endStreamBtn = document.getElementById('end-stream-btn');
 // WebRTC variables
 let peerConnection;
 let currentCode = null;
+let isStreamActive = false;
 
 // When the WebSocket connection is established
 socket.onopen = () => {
@@ -42,6 +43,16 @@ socket.onmessage = (event) => {
       if (data.audienceList) {
         updateAudienceList(data.audienceList);
       }
+      
+      // Set initial stream state
+      if (data.isStreamActive && data.currentStreamingCode) {
+        isStreamActive = true;
+        currentCode = data.currentStreamingCode;
+        updateStreamControlsState(true);
+        updateSelectionControlsState(false);
+        selectionStatus.textContent = `Stream active for code ${currentCode}`;
+        noStreamMessage.style.display = 'none';
+      }
       break;
       
     case 'audience-updated':
@@ -49,6 +60,27 @@ socket.onmessage = (event) => {
       if (data.audienceList) {
         updateAudienceList(data.audienceList);
         audienceCount.textContent = `${data.audienceList.length} audience members connected`;
+      }
+      
+      // Update stream state if provided
+      if (data.hasOwnProperty('isStreamActive')) {
+        isStreamActive = data.isStreamActive;
+        updateSelectionControlsState(!isStreamActive);
+        
+        if (data.currentStreamingCode) {
+          currentCode = data.currentStreamingCode;
+        }
+      }
+      break;
+      
+    case 'selection-rejected':
+      // Selection was rejected due to active stream
+      selectionStatus.textContent = data.reason;
+      selectionStatus.classList.add('error');
+      
+      // Highlight the already streaming audience member
+      if (currentCode) {
+        highlightSelectedAudience(currentCode);
       }
       break;
       
@@ -73,10 +105,42 @@ socket.onmessage = (event) => {
     case 'stream-active':
       selectionStatus.textContent = `Stream active for code ${data.code}`;
       noStreamMessage.style.display = 'none';
-      endStreamBtn.disabled = false;
+      
+      // Update streaming state
+      isStreamActive = true;
+      updateStreamControlsState(true);
+      updateSelectionControlsState(false);
       
       // Update the streaming status in the audience list
       updateStreamingStatus(data.code, true);
+      break;
+      
+    case 'stream-ended':
+      selectionStatus.textContent = `Stream ended for code ${data.code}`;
+      noStreamMessage.style.display = 'block';
+      
+      // Update streaming state
+      isStreamActive = false;
+      updateStreamControlsState(false);
+      updateSelectionControlsState(true);
+      
+      if (data.code) {
+        updateStreamingStatus(data.code, false);
+      }
+      
+      // Clear current video
+      if (remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+      }
+      
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      
+      // Reset current code
+      currentCode = null;
       break;
       
     case 'stream-offer':
@@ -96,7 +160,26 @@ socket.onmessage = (event) => {
       if (data.code === currentCode) {
         selectionStatus.textContent = `Audience member with code ${data.code} disconnected`;
         selectionStatus.classList.add('error');
-        endStream();
+        
+        // If this was the streaming audience, reset the stream state
+        if (isStreamActive) {
+          isStreamActive = false;
+          updateStreamControlsState(false);
+          updateSelectionControlsState(true);
+          
+          if (remoteVideo.srcObject) {
+            remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+            remoteVideo.srcObject = null;
+          }
+          
+          if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+          }
+          
+          noStreamMessage.style.display = 'block';
+          currentCode = null;
+        }
       }
       break;
   }
@@ -136,12 +219,45 @@ function updateAudienceList(audienceMembers) {
     
     // Add click handler to select this audience member
     audienceItem.addEventListener('click', () => {
-      codeInput.value = member.code;
-      selectBtn.click();
+      // Only allow selection if no stream is active
+      if (!isStreamActive || member.code === currentCode) {
+        codeInput.value = member.code;
+        selectBtn.click();
+      } else {
+        selectionStatus.textContent = 'Please end the current stream before selecting another audience member';
+        selectionStatus.classList.add('error');
+        setTimeout(() => {
+          selectionStatus.textContent = '';
+          selectionStatus.classList.remove('error');
+        }, 3000);
+      }
     });
     
     audienceList.appendChild(audienceItem);
   });
+}
+
+// Update the state of selection controls
+function updateSelectionControlsState(enabled) {
+  codeInput.disabled = !enabled;
+  selectBtn.disabled = !enabled;
+  randomBtn.disabled = !enabled;
+  
+  // Apply visual indication
+  const selectionContainer = document.querySelector('.code-selection');
+  if (selectionContainer) {
+    if (enabled) {
+      selectionContainer.classList.remove('disabled');
+    } else {
+      selectionContainer.classList.add('disabled');
+    }
+  }
+}
+
+// Update the state of stream controls
+function updateStreamControlsState(enabled) {
+  endStreamBtn.disabled = !enabled;
+  fullscreenBtn.disabled = !enabled;
 }
 
 // Highlight the selected audience item
@@ -194,6 +310,17 @@ socket.onclose = () => {
 
 // Select audience member by code
 selectBtn.addEventListener('click', () => {
+  // Don't allow selection if a stream is active
+  if (isStreamActive && codeInput.value.toUpperCase() !== currentCode) {
+    selectionStatus.textContent = 'Please end the current stream before selecting another audience member';
+    selectionStatus.classList.add('error');
+    setTimeout(() => {
+      selectionStatus.textContent = '';
+      selectionStatus.classList.remove('error');
+    }, 3000);
+    return;
+  }
+  
   const code = codeInput.value.toUpperCase();
   if (code.length === 4) {
     socket.send(JSON.stringify({
@@ -210,6 +337,17 @@ selectBtn.addEventListener('click', () => {
 
 // Handle random selection button
 randomBtn.addEventListener('click', () => {
+  // Don't allow selection if a stream is active
+  if (isStreamActive) {
+    selectionStatus.textContent = 'Please end the current stream before selecting another audience member';
+    selectionStatus.classList.add('error');
+    setTimeout(() => {
+      selectionStatus.textContent = '';
+      selectionStatus.classList.remove('error');
+    }, 3000);
+    return;
+  }
+  
   // Get all available audience codes from the UI
   const audienceItems = audienceList.querySelectorAll('.audience-item:not(.streaming)');
   
@@ -326,14 +464,16 @@ function endStream() {
     peerConnection = null;
   }
   
+  // Notify the server that the stream has ended
+  socket.send(JSON.stringify({
+    type: 'end-stream',
+    code: currentCode
+  }));
+  
+  // Update UI locally
   noStreamMessage.style.display = 'block';
-  endStreamBtn.disabled = true;
+  updateStreamControlsState(false);
   
-  // Update UI to reflect stream ending
-  if (currentCode) {
-    updateStreamingStatus(currentCode, false);
-    currentCode = null;
-  }
-  
-  selectionStatus.textContent = 'Stream ended';
+  // Note: We don't reset isStreamActive or currentCode here
+  // We wait for the server to confirm via stream-ended message
 }

@@ -16,6 +16,10 @@ const audiences = new Map(); // websocket -> {code, streaming}
 const codes = new Set(); // track assigned codes
 const usedCodes = new Set(); // track previously used codes
 
+// Track current streaming state
+let currentStreamingCode = null; // The code of the currently streaming audience member
+let isStreamActive = false; // Flag to track if any stream is active
+
 // Generate a random 4-character code
 function generateUniqueCode() {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed similar looking chars
@@ -63,11 +67,24 @@ wss.on('connection', (ws) => {
         // Notify admins about new audience member
         broadcastToAdmins({
           type: 'audience-updated',
-          audienceList: getAudienceList()
+          audienceList: getAudienceList(),
+          isStreamActive: isStreamActive,
+          currentStreamingCode: currentStreamingCode
         });
         break;
         
       case 'select-code':
+        // Check if a stream is already active
+        if (isStreamActive) {
+          // Reject the selection request
+          ws.send(JSON.stringify({
+            type: 'selection-rejected',
+            reason: 'A stream is already active. Please end the current stream before selecting another audience member.'
+          }));
+          console.log(`Selection rejected for code ${data.code} - stream already active with code ${currentStreamingCode}`);
+          return;
+        }
+        
         // Admin selects a code to activate
         const selectedCode = data.code;
         let targetWs = null;
@@ -112,19 +129,65 @@ wss.on('connection', (ws) => {
           info.streaming = true;
           audiences.set(ws, info);
           
+          // Set global streaming state
+          isStreamActive = true;
+          currentStreamingCode = info.code;
+          
           // Broadcast to admin that stream is active
           broadcastToAdmins({
             type: 'stream-active',
-            code: info.code
+            code: info.code,
+            isStreamActive: true
           });
           
           // Update audience list for admins
           broadcastToAdmins({
             type: 'audience-updated',
-            audienceList: getAudienceList()
+            audienceList: getAudienceList(),
+            isStreamActive: isStreamActive,
+            currentStreamingCode: currentStreamingCode
           });
           
           console.log(`Stream started for code ${info.code}`);
+        }
+        break;
+        
+      case 'end-stream':
+        // Admin ends the current stream
+        if (currentStreamingCode) {
+          // Find the streaming audience member and update their status
+          for (const [client, info] of audiences.entries()) {
+            if (info.code === currentStreamingCode) {
+              info.streaming = false;
+              audiences.set(client, info);
+              
+              // Notify the audience member their stream has ended
+              client.send(JSON.stringify({ type: 'stream-ended' }));
+              break;
+            }
+          }
+          
+          // Reset global streaming state
+          isStreamActive = false;
+          const endedStreamCode = currentStreamingCode;
+          currentStreamingCode = null;
+          
+          // Notify all admins that the stream has ended
+          broadcastToAdmins({
+            type: 'stream-ended',
+            code: endedStreamCode,
+            isStreamActive: false
+          });
+          
+          // Update audience list for admins
+          broadcastToAdmins({
+            type: 'audience-updated',
+            audienceList: getAudienceList(),
+            isStreamActive: false,
+            currentStreamingCode: null
+          });
+          
+          console.log(`Stream ended for code ${endedStreamCode}`);
         }
         break;
         
@@ -192,7 +255,9 @@ wss.on('connection', (ws) => {
         ws.send(JSON.stringify({ 
           type: 'admin-registered',
           activeAudience: audiences.size,
-          audienceList: getAudienceList()
+          audienceList: getAudienceList(),
+          isStreamActive: isStreamActive,
+          currentStreamingCode: currentStreamingCode
         }));
         
         console.log('Admin registered');
@@ -203,8 +268,25 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     // Remove audience member when they disconnect
     if (audiences.has(ws)) {
-      const code = audiences.get(ws).code;
+      const info = audiences.get(ws);
+      const code = info.code;
       codes.delete(code);
+      
+      // Check if this was the streaming audience member
+      if (info.streaming && code === currentStreamingCode) {
+        // Reset global streaming state
+        isStreamActive = false;
+        currentStreamingCode = null;
+        
+        // Notify admins that the stream has ended
+        broadcastToAdmins({
+          type: 'stream-ended',
+          code: code,
+          reason: 'disconnected',
+          isStreamActive: false
+        });
+      }
+      
       audiences.delete(ws);
       console.log(`Audience member with code ${code} disconnected`);
       
@@ -217,7 +299,9 @@ wss.on('connection', (ws) => {
       // Update audience list for admins
       broadcastToAdmins({
         type: 'audience-updated',
-        audienceList: getAudienceList()
+        audienceList: getAudienceList(),
+        isStreamActive: isStreamActive,
+        currentStreamingCode: currentStreamingCode
       });
     }
     console.log('Client disconnected');
