@@ -58,17 +58,23 @@ socket.onmessage = (event) => {
       }
       break;
       
-    case 'stream-ended':
-      // Admin has ended the stream
-      endStream();
-      
-      // Show a notification to the user
-      alert('Your stream has been ended by the production team.');
-      
-      // Reset to code screen
-      streamingScreen.classList.add('hidden');
-      codeScreen.classList.remove('hidden');
-      break;
+      case 'stream-ended':
+        // Admin has ended the stream
+        endStream();
+        
+        // Return directly to welcome screen
+        streamingScreen.classList.add('hidden');
+        streamEndedScreen.classList.add('hidden');
+        welcomeScreen.classList.remove('hidden');
+        
+        // Add animation class
+        welcomeScreen.classList.add('session-ended');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+          welcomeScreen.classList.remove('session-ended');
+        }, 3000);
+        break;
   }
 };
 

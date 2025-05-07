@@ -21,6 +21,7 @@ let currentStreamingCode = null; // The code of the currently streaming audience
 let isStreamActive = false; // Flag to track if any stream is active
 
 // Generate a random 4-character code
+// Generate a random 4-character code
 function generateUniqueCode() {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed similar looking chars
   let code;

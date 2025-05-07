@@ -115,33 +115,39 @@ socket.onmessage = (event) => {
       updateStreamingStatus(data.code, true);
       break;
       
-    case 'stream-ended':
-      selectionStatus.textContent = `Stream ended for code ${data.code}`;
-      noStreamMessage.style.display = 'block';
-      
-      // Update streaming state
-      isStreamActive = false;
-      updateStreamControlsState(false);
-      updateSelectionControlsState(true);
-      
-      if (data.code) {
-        updateStreamingStatus(data.code, false);
-      }
-      
-      // Clear current video
-      if (remoteVideo.srcObject) {
-        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
-        remoteVideo.srcObject = null;
-      }
-      
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-      
-      // Reset current code
-      currentCode = null;
-      break;
+      case 'stream-ended':
+        selectionStatus.textContent = `Stream ended for code ${data.code}`;
+        noStreamMessage.style.display = 'block';
+        
+        // Add fade-in effect to no stream message
+        noStreamMessage.classList.add('fade-in');
+        setTimeout(() => {
+          noStreamMessage.classList.remove('fade-in');
+        }, 1000);
+        
+        // Update streaming state
+        isStreamActive = false;
+        updateStreamControlsState(false);
+        updateSelectionControlsState(true);
+        
+        if (data.code) {
+          updateStreamingStatus(data.code, false);
+        }
+        
+        // Clear current video
+        if (remoteVideo.srcObject) {
+          remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+          remoteVideo.srcObject = null;
+        }
+        
+        if (peerConnection) {
+          peerConnection.close();
+          peerConnection = null;
+        }
+        
+        // Reset current code
+        currentCode = null;
+        break;
       
     case 'stream-offer':
       // Process WebRTC offer from audience
