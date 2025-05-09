@@ -326,9 +326,29 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+
 // Start the server
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+
+const os = require('os');
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // IPv4 ve dahili olmayan arayüzleri seçin
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '0.0.0.0'; // Hiçbir şey bulunamazsa varsayılan değer
+}
+
+const localIP = getLocalIP();
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Connect to http://localhost:${PORT} from your device`);
+  console.log(`For local access: http://localhost:${PORT}`);
+  console.log(`For other devices: http://${localIP}:${PORT}`);
 });
