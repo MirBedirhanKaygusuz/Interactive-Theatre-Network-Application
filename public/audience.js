@@ -8,9 +8,11 @@ const welcomeScreen = document.getElementById('welcome-screen');
 const codeScreen = document.getElementById('code-screen');
 const selectedScreen = document.getElementById('selected-screen');
 const streamingScreen = document.getElementById('streaming-screen');
+const streamEndedScreen = document.getElementById('stream-ended-screen');
 const codeDisplay = document.getElementById('code-display');
 const getCodeBtn = document.getElementById('get-code-btn');
 const allowMediaBtn = document.getElementById('allow-media-btn');
+const returnBtn = document.getElementById('return-btn');
 const localVideo = document.getElementById('local-video');
 
 // WebRTC variables
@@ -55,6 +57,24 @@ socket.onmessage = (event) => {
           .catch(error => console.error('Error adding ICE candidate:', error));
       }
       break;
+      
+      case 'stream-ended':
+        // Admin has ended the stream
+        endStream();
+        
+        // Return directly to welcome screen
+        streamingScreen.classList.add('hidden');
+        streamEndedScreen.classList.add('hidden');
+        welcomeScreen.classList.remove('hidden');
+        
+        // Add animation class
+        welcomeScreen.classList.add('session-ended');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+          welcomeScreen.classList.remove('session-ended');
+        }, 3000);
+        break;
   }
 };
 
@@ -135,6 +155,11 @@ function setupPeerConnection() {
   // Log connection state changes
   peerConnection.onconnectionstatechange = () => {
     console.log('Connection state:', peerConnection.connectionState);
+    if (peerConnection.connectionState === 'disconnected' || 
+        peerConnection.connectionState === 'failed' ||
+        peerConnection.connectionState === 'closed') {
+      endStream();
+    }
   };
 }
 
@@ -150,5 +175,21 @@ async function createAndSendOffer() {
     }));
   } catch (error) {
     console.error('Error creating offer:', error);
+  }
+}
+
+// End the current stream
+function endStream() {
+  // Stop all tracks in the local stream
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localVideo.srcObject = null;
+    localStream = null;
+  }
+  
+  // Close the peer connection
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
   }
 }
