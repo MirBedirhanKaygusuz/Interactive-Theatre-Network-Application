@@ -192,6 +192,9 @@ socket.onmessage = (event) => {
 };
 
 // Update the audience list in the UI
+// Update the audience list in the UI
+// Update the audience list in the UI
+// Update the audience list in the UI
 function updateAudienceList(audienceMembers) {
   // Clear existing list
   audienceList.innerHTML = '';
@@ -201,8 +204,16 @@ function updateAudienceList(audienceMembers) {
     return;
   }
   
-  // Sort audience members by code
-  audienceMembers.sort((a, b) => a.code.localeCompare(b.code));
+  // Sort audience members by seat number (if available) or code
+  audienceMembers.sort((a, b) => {
+    // First try to sort by seat number
+    if (a.seatNumber && a.seatNumber !== 'Unknown' && 
+        b.seatNumber && b.seatNumber !== 'Unknown') {
+      return a.seatNumber.localeCompare(b.seatNumber);
+    }
+    // Fall back to sorting by code
+    return a.code.localeCompare(b.code);
+  });
   
   // Create a list item for each audience member
   audienceMembers.forEach(member => {
@@ -218,9 +229,16 @@ function updateAudienceList(audienceMembers) {
       audienceItem.classList.add('streaming');
     }
     
+    // Make sure seatNumber has a valid value
+    const seatNumber = member.seatNumber || 'Unknown';
+    
+    // Modified structure: code on left, seat number + status on right
     audienceItem.innerHTML = `
       <span class="audience-code">${member.code}</span>
-      <span class="audience-status ${member.streaming ? 'streaming' : ''}">${member.streaming ? 'Streaming' : 'Ready'}</span>
+      <div class="audience-right">
+        <span class="audience-seat">Seat: ${seatNumber}</span>
+        <span class="audience-status ${member.streaming ? 'streaming' : ''}">${member.streaming ? 'Streaming' : 'Ready'}</span>
+      </div>
     `;
     
     // Add click handler to select this audience member

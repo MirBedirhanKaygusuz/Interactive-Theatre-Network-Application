@@ -77,7 +77,8 @@ function getAudienceList() {
   for (const [_, info] of audiences.entries()) {
     audienceList.push({
       code: info.code,
-      streaming: info.streaming
+      streaming: info.streaming,
+      seatNumber: info.seatNumber && info.seatNumber.trim() !== "" ? info.seatNumber : "Unknown"
     });
   }
   return audienceList;
@@ -91,22 +92,28 @@ wss.on('connection', (ws) => {
     const data = JSON.parse(message);
     
     switch (data.type) {
+      
       case 'register-audience':
-        // Assign a unique code to the audience member
-        const code = generateUniqueCode();
-        audiences.set(ws, { code, streaming: false });
-        ws.send(JSON.stringify({ type: 'code-assigned', code }));
-        console.log(`Assigned code ${code} to an audience member`);
-        
-        // Notify admins about new audience member
-        broadcastToAdmins({
-          type: 'audience-updated',
-          audienceList: getAudienceList(),
-          isStreamActive: isStreamActive,
-          currentStreamingCode: currentStreamingCode
-        });
-        break;
-        
+  // Assign a unique code to the audience member
+  const code = generateUniqueCode();
+  // Get seat number and ensure it's a valid string
+  const seatNumber = data.seatNumber && typeof data.seatNumber === 'string' && data.seatNumber.trim() !== '' 
+    ? data.seatNumber.trim() 
+    : 'Unknown';
+  
+  audiences.set(ws, { code, streaming: false, seatNumber });
+  ws.send(JSON.stringify({ type: 'code-assigned', code }));
+  console.log(`Assigned code ${code} to audience member at seat ${seatNumber}`);
+  
+  // Notify admins about new audience member
+  broadcastToAdmins({
+    type: 'audience-updated',
+    audienceList: getAudienceList(),
+    isStreamActive: isStreamActive,
+    currentStreamingCode: currentStreamingCode
+  });
+  break;
+
       case 'select-code':
         // Check if a stream is already active
         if (isStreamActive) {
@@ -363,6 +370,8 @@ app.get('/admin', (req, res) => {
 app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
+
+
 
 // Start the server
 const PORT = process.env.PORT || 3001;

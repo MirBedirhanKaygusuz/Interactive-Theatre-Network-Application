@@ -10,6 +10,13 @@
   <div id="welcome-screen">
     <h1>Interactive Theatre Experience</h1>
     <p>Welcome! You'll be assigned a unique code. If your code is called during the show, you'll have a chance to participate!</p>
+    
+    <!-- Added seat number input -->
+    <div class="seat-input">
+      <label for="seat-number">Please enter your seat number:</label>
+      <input type="text" id="seat-number" placeholder="e.g. A12, B5, etc." maxlength="10">
+    </div>
+    
     <button id="get-code-btn">Get My Code</button>
   </div>
   
@@ -24,14 +31,6 @@
     <p>The production team would like to connect to your camera and microphone.</p>
     <button id="allow-media-btn">Allow Access</button>
   </div>
-  
-  <div id="streaming-screen" class="hidden">
-    <div class="live-indicator">LIVE</div>
-    <h1>You're Live!</h1>
-    <video id="local-video" autoplay muted></video>
-    <p>Your camera feed is now being shown on the main screen.</p>
-  </div>
-  
   
   <div id="streaming-screen" class="hidden">
     <div class="live-indicator">LIVE</div>

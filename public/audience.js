@@ -14,6 +14,7 @@ const getCodeBtn = document.getElementById('get-code-btn');
 const allowMediaBtn = document.getElementById('allow-media-btn');
 const returnBtn = document.getElementById('return-btn');
 const localVideo = document.getElementById('local-video');
+const seatNumberInput = document.getElementById('seat-number'); // Added seat number input reference
 
 // WebRTC variables
 let peerConnection;
@@ -58,23 +59,23 @@ socket.onmessage = (event) => {
       }
       break;
       
-      case 'stream-ended':
-        // Admin has ended the stream
-        endStream();
-        
-        // Return directly to welcome screen
-        streamingScreen.classList.add('hidden');
-        streamEndedScreen.classList.add('hidden');
-        welcomeScreen.classList.remove('hidden');
-        
-        // Add animation class
-        welcomeScreen.classList.add('session-ended');
-        
-        // Remove animation class after animation completes
-        setTimeout(() => {
-          welcomeScreen.classList.remove('session-ended');
-        }, 3000);
-        break;
+    case 'stream-ended':
+      // Admin has ended the stream
+      endStream();
+      
+      // Return directly to welcome screen
+      streamingScreen.classList.add('hidden');
+      if (streamEndedScreen) streamEndedScreen.classList.add('hidden');
+      welcomeScreen.classList.remove('hidden');
+      
+      // Add animation class
+      welcomeScreen.classList.add('session-ended');
+      
+      // Remove animation class after animation completes
+      setTimeout(() => {
+        welcomeScreen.classList.remove('session-ended');
+      }, 3000);
+      break;
   }
 };
 
@@ -91,8 +92,24 @@ socket.onclose = () => {
 };
 
 // Request a code from the server
+
+// Request a code from the server
 getCodeBtn.addEventListener('click', () => {
-  socket.send(JSON.stringify({ type: 'register-audience' }));
+  // Get the seat number from the input
+  const seatNumber = seatNumberInput.value.trim();
+  
+  // Validate the seat number
+  if (!seatNumber) {
+    alert('Please enter your seat number before continuing.');
+    seatNumberInput.focus();
+    return;
+  }
+  
+  // Send registration with seat number
+  socket.send(JSON.stringify({ 
+    type: 'register-audience',
+    seatNumber: seatNumber
+  }));
 });
 
 // Handle media access permission

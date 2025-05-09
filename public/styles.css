@@ -495,3 +495,77 @@
   50% { border-color: #e74c3c; box-shadow: 0 0 10px 5px rgba(231, 76, 60, 0.5); }
   100% { border-color: #34495e; box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
 }
+
+/* Styles for seat number input */
+.seat-input {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.seat-input label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.seat-input input {
+  width: 100%;
+  max-width: 200px;
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #3498db;
+  border-radius: 5px;
+  text-align: center;
+}
+
+/* Add to admin styles */
+.audience-seat {
+  font-size: 12px;
+  color: #bdc3c7;
+  margin-top: 2px;
+}
+
+/* Styles for audience items with seat number next to Ready button */
+.audience-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audience-seat {
+  font-size: 13px;
+  color: #ecf0f1;
+  background-color: #34495e;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.audience-status {
+  font-size: 14px;
+  background-color: #27ae60;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.audience-status.used {
+  background-color: #7f8c8d;
+}
+
+.audience-status.streaming {
+  background-color: #e67e22;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .audience-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+  }
+  
+  .audience-item {
+    flex-wrap: wrap;
+  }
+}
