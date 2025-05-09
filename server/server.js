@@ -1,11 +1,45 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const WebSocket = require('ws');
 const path = require('path');
+const os = require('os');
 
 // Initialize express app
 const app = express();
-const server = http.createServer(app);
+
+// Determine if we can use HTTPS
+let server;
+let protocol = 'http';
+const sslDir = path.join(__dirname, '../ssl');
+const keyPath = path.join(sslDir, 'key.pem');
+const certPath = path.join(sslDir, 'cert.pem');
+
+try {
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    // SSL certificates exist, use HTTPS
+    const options = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+    server = https.createServer(options, app);
+    protocol = 'https';
+    console.log('SSL certificates found. Running in HTTPS mode.');
+  } else {
+    // No SSL certificates, use HTTP
+    server = http.createServer(app);
+    console.log('SSL certificates not found. Running in HTTP mode.');
+    console.log('To enable HTTPS, create ssl/key.pem and ssl/cert.pem files.');
+  }
+} catch (err) {
+  // Error when trying to access SSL files, fall back to HTTP
+  console.error('Error setting up HTTPS:', err.message);
+  server = http.createServer(app);
+  console.log('Falling back to HTTP mode.');
+}
+
+// Initialize WebSocket server
 const wss = new WebSocket.Server({ server });
 
 // Serve static files
@@ -20,7 +54,6 @@ const usedCodes = new Set(); // track previously used codes
 let currentStreamingCode = null; // The code of the currently streaming audience member
 let isStreamActive = false; // Flag to track if any stream is active
 
-// Generate a random 4-character code
 // Generate a random 4-character code
 function generateUniqueCode() {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed similar looking chars
@@ -318,6 +351,7 @@ function broadcastToAdmins(data) {
   });
 }
 
+// Rota tanımlamaları
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/audience.html'));
 });
@@ -326,29 +360,43 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
 
 // Start the server
 const PORT = process.env.PORT || 3001;
-
-const os = require('os');
-
-function getLocalIP() {
+server.listen(PORT, '0.0.0.0', () => {
+  // Get the local IP address
   const interfaces = os.networkInterfaces();
+  let localIP = '0.0.0.0';
+  
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      // IPv4 ve dahili olmayan arayüzleri seçin
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
+        localIP = iface.address;
+        break;
       }
     }
   }
-  return '0.0.0.0'; // Hiçbir şey bulunamazsa varsayılan değer
-}
-
-const localIP = getLocalIP();
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`For local access: http://localhost:${PORT}`);
-  console.log(`For other devices: http://${localIP}:${PORT}`);
+  
+  console.log(`\n---- SERVER STARTED SUCCESSFULLY ----`);
+  console.log(`Running in ${protocol.toUpperCase()} mode on port ${PORT}`);
+  console.log(`\nLocal Access URLs:`);
+  console.log(`  Local: ${protocol}://localhost:${PORT}`);
+  console.log(`  Network: ${protocol}://${localIP}:${PORT}`);
+  console.log(`\nAdmin Panel:`);
+  console.log(`  ${protocol}://${localIP}:${PORT}/admin.html`);
+  console.log(`\n------------------------------------`);
+  
+  if (protocol === 'http') {
+    console.log(`\nNOTE: Running in HTTP mode. Camera access might be restricted.`);
+    console.log(`To enable HTTPS, create these files:`);
+    console.log(`  - ${keyPath}`);
+    console.log(`  - ${certPath}`);
+    console.log(`\nYou can create these with the following commands:`);
+    console.log(`  mkdir -p ssl`);
+    console.log(`  cd ssl`);
+    console.log(`  openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem`);
+  }
 });
