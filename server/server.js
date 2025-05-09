@@ -378,16 +378,7 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   // Get the local IP address
   const interfaces = os.networkInterfaces();
-  let localIP = '0.0.0.0';
-  
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        localIP = iface.address;
-        break;
-      }
-    }
-  }
+  let localIP = '192.168.50.196';
   
   console.log(`\n---- SERVER STARTED SUCCESSFULLY ----`);
   console.log(`Running in ${protocol.toUpperCase()} mode on port ${PORT}`);
