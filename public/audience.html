@@ -1,42 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Theatre</title>
+  <title>İnteraktif Tiyatro</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="audience">
   <div id="welcome-screen">
-    <h1>Interactive Theatre Experience</h1>
-    <p>Welcome! You'll be assigned a unique code. If your code is called during the show, you'll have a chance to participate!</p>
+    <h1>İnteraktif Tiyatro Deneyimi</h1>
+    <p>Hoş geldiniz! Size benzersiz bir kod verilecek. Sorulara cevap vermek istediğinizde, koltuk numaranızı girip sisteme giriş yapın. Seçildiğinizde Kameranıza ve mikrofonunuza erişim izni istenecek lüften onaylamayı ve tüm izinleri vermeyi unutmayın.</p>
+    <br>
+    <h3>Verilerinizi hiçbir şekilde depolamıyoruz ekran ve ses kaydı alınmayacaktır.</h3>
     
-    <!-- Added seat number input -->
+    <!-- Koltuk numarası girişi -->
     <div class="seat-input">
-      <label for="seat-number">Please enter your seat number:</label>
-      <input type="text" id="seat-number" placeholder="e.g. A12, B5, etc." maxlength="10">
+      <label for="seat-number">Lütfen koltuk numaranızı girin:</label>
+      <input type="text" id="seat-number" placeholder="örn. A12, B5, vb." maxlength="10">
     </div>
     
-    <button id="get-code-btn">Get My Code</button>
+    <button id="get-code-btn">Kodumu Al</button>
   </div>
   
   <div id="code-screen" class="hidden">
-    <h1>Your Code</h1>
+    <h1>Kodunuz</h1>
     <div id="code-display"></div>
-    <p>Keep this page open during the show. If your code is announced, you'll be prompted to participate!</p>
+    <p>Gösteri boyunca bu sayfayı açık tutun. Eğer cevap vermek için seçilirseniz bir sonraki ekrana yönlendirileceksiniz.</p>
   </div>
   
   <div id="selected-screen" class="hidden">
-    <h1>You've Been Selected!</h1>
-    <p>The production team would like to connect to your camera and microphone.</p>
-    <button id="allow-media-btn">Allow Access</button>
+    <h1>Seçildiniz!</h1>
+    <p>Kamera ve mikrofonunuza bağlanmak istiyoruz.</p>
+    <button id="allow-media-btn">Erişime İzin Ver</button>
   </div>
   
   <div id="streaming-screen" class="hidden">
-    <div class="live-indicator">LIVE</div>
-    <h1>You're Live!</h1>
+    <div class="live-indicator">CANLI</div>
     <video id="local-video" autoplay muted></video>
-    <p>Your camera feed is now being shown on the main screen.</p>
+    <p>Kamera görüntünüz şu anda ana ekranda gösteriliyor.</p>
   </div>
 
   <script src="audience.js"></script>

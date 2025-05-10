@@ -1,36 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Interactive Theatre</title>
+  <title>Yönetici Paneli - İnteraktif Tiyatro</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="admin">
   <div class="admin-container">
     <div class="admin-header">
-      <h1>Production Control Panel</h1>
+      <h1>Prodüksiyon Kontrol Paneli</h1>
       <div class="status-indicator">
-        <span id="connection-status">Connecting...</span>
-        <span id="audience-count">0 audience members connected</span>
+        <span id="connection-status">Bağlanıyor...</span>
+        <span id="audience-count">0 izleyici bağlı</span>
       </div>
     </div>
     
     <div class="admin-panels-container">
       <div class="admin-left-panel">
         <div class="audience-list-container">
-          <h2>Audience Members</h2>
+          <h2>İzleyiciler</h2>
           <div id="audience-list">
-            <p class="empty-list-message">No audience members connected yet</p>
+            <p class="empty-list-message">Henüz bağlı izleyici yok</p>
           </div>
         </div>
         
         <div class="code-selection">
-          <h2>Select Audience Member</h2>
+          <h2>İzleyici Seç</h2>
           <div class="code-input-group">
-            <input type="text" id="code-input" placeholder="Enter 4-digit code" maxlength="4">
-            <button id="select-btn">Select</button>
-            <button id="random-btn">Random Selection</button>
+            <input type="text" id="code-input" placeholder="4 haneli kod girin" maxlength="4">
+            <button id="select-btn">Seç</button>
+            <button id="random-btn">Rastgele Seçim</button>
           </div>
           <p id="selection-status"></p>
         </div>
@@ -38,14 +38,14 @@
       
       <div class="admin-right-panel">
         <div class="stream-container">
-          <h2>Live Stream</h2>
+          <h2>Canlı Yayın</h2>
           <div class="video-container">
             <video id="remote-video" autoplay playsinline></video>
-            <div id="no-stream-message">No active stream</div>
+            <div id="no-stream-message">Aktif yayın yok</div>
           </div>
           <div class="stream-controls">
-            <button id="fullscreen-btn">Fullscreen</button>
-            <button id="end-stream-btn" disabled>End Stream</button>
+            <button id="fullscreen-btn">Tam Ekran</button>
+            <button id="end-stream-btn" disabled>Yayını Sonlandır</button>
           </div>
         </div>
       </div>
