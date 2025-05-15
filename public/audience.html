@@ -28,6 +28,18 @@
     <p>Gösteri boyunca bu sayfayı açık tutun. Eğer cevap vermek için seçilirseniz bir sonraki ekrana yönlendirileceksiniz.</p>
   </div>
   
+  <!-- Yeni bekleme ekranı -->
+  <div id="waiting-screen" class="hidden">
+    <h1>Bekleme Salonu</h1>
+    <div id="code-display-waiting" class="small-code"></div>
+    <div class="question-container">
+      <h2>Soru</h2>
+      <div id="question-display">Bir soru açılması bekleniyor...</div>
+    </div>
+    <button id="raise-hand-btn" class="hidden">El Kaldır</button>
+    <p class="status-message">Soru açıldığında el kaldırabilirsiniz. Seçilirseniz kamera ve mikrofonunuza erişim isteyeceğiz.</p>
+  </div>
+  
   <div id="selected-screen" class="hidden">
     <h1>Seçildiniz!</h1>
     <p>Kamera ve mikrofonunuza bağlanmak istiyoruz.</p>
@@ -38,6 +50,11 @@
     <div class="live-indicator">CANLI</div>
     <video id="local-video" autoplay muted></video>
     <p>Kamera görüntünüz şu anda ana ekranda gösteriliyor.</p>
+  </div>
+  
+  <div id="stream-ended-screen" class="hidden">
+    <h1>Yayın Sonlandı</h1>
+    <p>Teşekkür ederiz! Bekleme salonuna geri dönüyorsunuz.</p>
   </div>
 
   <script src="audience.js"></script>

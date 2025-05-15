@@ -46,13 +46,15 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Store audience connections and their codes
-const audiences = new Map(); // websocket -> {code, streaming}
+const audiences = new Map(); // websocket -> {code, streaming, handRaised, deviceType, seatNumber}
 const codes = new Set(); // track assigned codes
 const usedCodes = new Set(); // track previously used codes
 
 // Track current streaming state
 let currentStreamingCode = null; // The code of the currently streaming audience member
 let isStreamActive = false; // Flag to track if any stream is active
+let currentQuestion = null; // The current active question
+let isQuestionOpen = false; // Flag to track if a question is active
 
 // Generate a random 4-character code
 function generateUniqueCode() {
@@ -78,6 +80,8 @@ function getAudienceList() {
     audienceList.push({
       code: info.code,
       streaming: info.streaming,
+      handRaised: info.handRaised || false,
+      deviceType: info.deviceType || 'web', // Default to web if not specified
       seatNumber: info.seatNumber && info.seatNumber.trim() !== "" ? info.seatNumber : "Unknown"
     });
   }
@@ -94,25 +98,46 @@ wss.on('connection', (ws) => {
     switch (data.type) {
       
       case 'register-audience':
-  // Assign a unique code to the audience member
-  const code = generateUniqueCode();
-  // Get seat number and ensure it's a valid string
-  const seatNumber = data.seatNumber && typeof data.seatNumber === 'string' && data.seatNumber.trim() !== '' 
-    ? data.seatNumber.trim() 
-    : 'Unknown';
-  
-  audiences.set(ws, { code, streaming: false, seatNumber });
-  ws.send(JSON.stringify({ type: 'code-assigned', code }));
-  console.log(`Assigned code ${code} to audience member at seat ${seatNumber}`);
-  
-  // Notify admins about new audience member
-  broadcastToAdmins({
-    type: 'audience-updated',
-    audienceList: getAudienceList(),
-    isStreamActive: isStreamActive,
-    currentStreamingCode: currentStreamingCode
-  });
-  break;
+        // Assign a unique code to the audience member
+        const code = generateUniqueCode();
+        // Get seat number and ensure it's a valid string
+        const seatNumber = data.seatNumber && typeof data.seatNumber === 'string' && data.seatNumber.trim() !== '' 
+          ? data.seatNumber.trim() 
+          : 'Unknown';
+        
+        // Identify iOS app connections
+        const deviceType = data.deviceType || 'web'; // Default to web if not provided
+        
+        audiences.set(ws, { 
+          code, 
+          streaming: false, 
+          handRaised: false, 
+          seatNumber,
+          deviceType 
+        });
+        
+        ws.send(JSON.stringify({ type: 'code-assigned', code }));
+        
+        // If there's an active question, notify the new audience member
+        if (isQuestionOpen && currentQuestion) {
+          ws.send(JSON.stringify({ 
+            type: 'question-opened', 
+            question: currentQuestion 
+          }));
+        }
+        
+        console.log(`Assigned code ${code} to audience member at seat ${seatNumber}, device: ${deviceType}`);
+        
+        // Notify admins about new audience member
+        broadcastToAdmins({
+          type: 'audience-updated',
+          audienceList: getAudienceList(),
+          isStreamActive: isStreamActive,
+          currentStreamingCode: currentStreamingCode,
+          isQuestionOpen: isQuestionOpen,
+          currentQuestion: currentQuestion
+        });
+        break;
 
       case 'select-code':
         // Check if a stream is already active
@@ -288,20 +313,137 @@ wss.on('connection', (ws) => {
         }
         break;
         
+      case 'raise-hand':
+        // Audience member raises hand to answer question
+        if (audiences.has(ws)) {
+          const info = audiences.get(ws);
+          info.handRaised = true;
+          audiences.set(ws, info);
+          
+          console.log(`Audience member with code ${info.code} raised hand`);
+          
+          // Update audience list for admins
+          broadcastToAdmins({
+            type: 'audience-updated',
+            audienceList: getAudienceList(),
+            isQuestionOpen: isQuestionOpen,
+            currentQuestion: currentQuestion
+          });
+        }
+        break;
+        
+      case 'lower-hand':
+        // Audience member lowers hand
+        if (audiences.has(ws)) {
+          const info = audiences.get(ws);
+          info.handRaised = false;
+          audiences.set(ws, info);
+          
+          console.log(`Audience member with code ${info.code} lowered hand`);
+          
+          // Update audience list for admins
+          broadcastToAdmins({
+            type: 'audience-updated',
+            audienceList: getAudienceList(),
+            isQuestionOpen: isQuestionOpen,
+            currentQuestion: currentQuestion
+          });
+        }
+        break;
+        
+      case 'open-question':
+        // Admin opens a new question
+        console.log('Received open-question request from admin');
+        currentQuestion = 'Yeni Soru'; // Sabit bir değer kullanıyoruz artık
+        isQuestionOpen = true;
+        
+        // Reset all hands
+        for (const [client, info] of audiences.entries()) {
+          info.handRaised = false;
+          audiences.set(client, info);
+        }
+        
+        // Notify all audience members about the question
+        console.log('Broadcasting question to audience members...');
+        broadcastToAudience({
+          type: 'question-opened',
+          question: currentQuestion
+        });
+        
+        console.log('Question opened successfully');
+        
+        // Update audience list for admins
+        console.log('Updating admins about question state...');
+        broadcastToAdmins({
+          type: 'audience-updated',
+          audienceList: getAudienceList(),
+          isQuestionOpen: isQuestionOpen,
+          currentQuestion: currentQuestion
+        });
+        break;
+        
+      case 'close-question':
+        // Admin closes the current question
+        console.log('Received close-question request from admin');
+        isQuestionOpen = false;
+        
+        // Reset all hands
+        for (const [client, info] of audiences.entries()) {
+          info.handRaised = false;
+          audiences.set(client, info);
+        }
+        
+        // Notify all audience members that the question is closed
+        console.log('Notifying audience members about question closure...');
+        broadcastToAudience({
+          type: 'question-closed'
+        });
+        
+        console.log('Question closed successfully');
+        
+        // Update audience list for admins
+        console.log('Updating admins about question closure...');
+        broadcastToAdmins({
+          type: 'audience-updated',
+          audienceList: getAudienceList(),
+          isQuestionOpen: isQuestionOpen,
+          currentQuestion: currentQuestion
+        });
+        break;
+        
       case 'register-admin':
         // Mark this connection as an admin
+        console.log('Admin registration request received');
         ws.isAdmin = true;
         
         // Send current audience list to the new admin
+        console.log(`Sending current state to admin: ${audiences.size} audience members, isQuestionOpen: ${isQuestionOpen}`);
         ws.send(JSON.stringify({ 
           type: 'admin-registered',
           activeAudience: audiences.size,
           audienceList: getAudienceList(),
           isStreamActive: isStreamActive,
-          currentStreamingCode: currentStreamingCode
+          currentStreamingCode: currentStreamingCode,
+          isQuestionOpen: isQuestionOpen,
+          currentQuestion: currentQuestion
         }));
         
-        console.log('Admin registered');
+        console.log('Admin registered successfully');
+        break;
+
+      case 'get-audience-list':
+        // Admin wants updated audience list
+        console.log('Admin requested updated audience list');
+        
+        // Just send the current audience list to the requesting admin
+        ws.send(JSON.stringify({ 
+          type: 'audience-updated',
+          audienceList: getAudienceList(),
+          isStreamActive: isStreamActive,
+          currentStreamingCode: currentStreamingCode,
+          isQuestionOpen: isQuestionOpen,
+          currentQuestion: currentQuestion
+        }));
         break;
     }
   });
@@ -351,11 +493,30 @@ wss.on('connection', (ws) => {
 
 // Helper to broadcast to all admin connections
 function broadcastToAdmins(data) {
+  let adminCount = 0;
+  
   wss.clients.forEach((client) => {
     if (client.isAdmin && client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(data));
+      adminCount++;
     }
   });
+  
+  console.log(`Message broadcasted to ${adminCount} admin clients.`);
+}
+
+// Helper to broadcast to all audience connections
+function broadcastToAudience(data) {
+  let audienceCount = 0;
+  
+  wss.clients.forEach((client) => {
+    if (!client.isAdmin && client.readyState === WebSocket.OPEN && audiences.has(client)) {
+      client.send(JSON.stringify(data));
+      audienceCount++;
+    }
+  });
+  
+  console.log(`Message broadcasted to ${audienceCount} audience clients.`);
 }
 
 // Rota tanımlamaları
@@ -371,14 +532,12 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-
-
 // Start the server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 server.listen(PORT, '0.0.0.0', () => {
   // Get the local IP address
   const interfaces = os.networkInterfaces();
-  let localIP = '192.168.50.196';
+  let localIP = '192.168.50.15';
   
   console.log(`\n---- SERVER STARTED SUCCESSFULLY ----`);
   console.log(`Running in ${protocol.toUpperCase()} mode on port ${PORT}`);

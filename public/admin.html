@@ -18,8 +18,24 @@
     
     <div class="admin-panels-container">
       <div class="admin-left-panel">
+        <div class="question-management">
+          <h2>Soru Yönetimi</h2>
+          <div class="question-input-group">
+            <button id="ask-question-btn">Soruyu Aç</button>
+            <button id="close-question-btn" disabled>Soruyu Kapat</button>
+          </div>
+          <div id="current-question-display" class="hidden">
+            <h3>Soru Durumu:</h3>
+            <p id="current-question-text">Soru kapalı</p>
+          </div>
+        </div>
+        
         <div class="audience-list-container">
           <h2>İzleyiciler</h2>
+          <div class="filter-controls">
+            <button id="show-all-btn" class="filter-btn active">Tümü</button>
+            <button id="show-raised-hands-btn" class="filter-btn">El Kaldıranlar</button>
+          </div>
           <div id="audience-list">
             <p class="empty-list-message">Henüz bağlı izleyici yok</p>
           </div>
@@ -30,7 +46,7 @@
           <div class="code-input-group">
             <input type="text" id="code-input" placeholder="4 haneli kod girin" maxlength="4">
             <button id="select-btn">Seç</button>
-            <button id="random-btn">Rastgele Seçim</button>
+            <button id="random-raised-hand-btn">El Kaldıranlardan Seç</button>
           </div>
           <p id="selection-status"></p>
         </div>

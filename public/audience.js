@@ -6,19 +6,24 @@ const socket = new WebSocket(wsUrl);
 // DOM elements
 const welcomeScreen = document.getElementById('welcome-screen');
 const codeScreen = document.getElementById('code-screen');
+const waitingScreen = document.getElementById('waiting-screen'); // New waiting screen
 const selectedScreen = document.getElementById('selected-screen');
 const streamingScreen = document.getElementById('streaming-screen');
 const streamEndedScreen = document.getElementById('stream-ended-screen');
 const codeDisplay = document.getElementById('code-display');
+const codeDisplayWaiting = document.getElementById('code-display-waiting'); // New code display for waiting screen
 const getCodeBtn = document.getElementById('get-code-btn');
+const raiseHandBtn = document.getElementById('raise-hand-btn'); // New raise hand button
 const allowMediaBtn = document.getElementById('allow-media-btn');
 const returnBtn = document.getElementById('return-btn');
 const localVideo = document.getElementById('local-video');
-const seatNumberInput = document.getElementById('seat-number'); // Added seat number input reference
+const seatNumberInput = document.getElementById('seat-number');
+const questionDisplay = document.getElementById('question-display'); // New question display
 
 // WebRTC variables
 let peerConnection;
 let localStream;
+let handRaised = false;
 
 // When the WebSocket connection is established
 socket.onopen = () => {
@@ -33,13 +38,33 @@ socket.onmessage = (event) => {
     case 'code-assigned':
       // Display the assigned code
       codeDisplay.textContent = data.code;
+      codeDisplayWaiting.textContent = data.code; // Also display code in waiting screen
       welcomeScreen.classList.add('hidden');
-      codeScreen.classList.remove('hidden');
+      // Go directly to waiting screen instead of code screen
+      waitingScreen.classList.remove('hidden');
+      break;
+      
+    case 'question-opened':
+      // Display the question and show raise hand button
+      questionDisplay.textContent = data.question;
+      raiseHandBtn.classList.remove('hidden');
+      // Reset hand state
+      handRaised = false;
+      raiseHandBtn.textContent = 'Raise Hand';
+      break;
+      
+    case 'question-closed':
+      // Hide raise hand button and clear question
+      raiseHandBtn.classList.add('hidden');
+      // Reset hand state
+      handRaised = false;
+      raiseHandBtn.textContent = 'Raise Hand';
+      questionDisplay.textContent = 'Waiting for the next question...';
       break;
       
     case 'you-selected':
       // Show the selection screen
-      codeScreen.classList.add('hidden');
+      waitingScreen.classList.add('hidden');
       selectedScreen.classList.remove('hidden');
       break;
       
@@ -63,18 +88,15 @@ socket.onmessage = (event) => {
       // Admin has ended the stream
       endStream();
       
-      // Return directly to welcome screen
+      // Return to waiting screen instead of welcome screen
       streamingScreen.classList.add('hidden');
       if (streamEndedScreen) streamEndedScreen.classList.add('hidden');
-      welcomeScreen.classList.remove('hidden');
+      waitingScreen.classList.remove('hidden');
       
-      // Add animation class
-      welcomeScreen.classList.add('session-ended');
+      // Reset hand state
+      handRaised = false;
+      raiseHandBtn.textContent = 'Raise Hand';
       
-      // Remove animation class after animation completes
-      setTimeout(() => {
-        welcomeScreen.classList.remove('session-ended');
-      }, 3000);
       break;
   }
 };
@@ -90,8 +112,6 @@ socket.onclose = () => {
   console.log('Disconnected from server');
   alert('Connection to server lost. Please refresh the page.');
 };
-
-// Request a code from the server
 
 // Request a code from the server
 getCodeBtn.addEventListener('click', () => {
@@ -110,6 +130,23 @@ getCodeBtn.addEventListener('click', () => {
     type: 'register-audience',
     seatNumber: seatNumber
   }));
+});
+
+// Handle raise hand button
+raiseHandBtn.addEventListener('click', () => {
+  handRaised = !handRaised;
+  
+  if (handRaised) {
+    raiseHandBtn.textContent = 'Lower Hand';
+    socket.send(JSON.stringify({ 
+      type: 'raise-hand'
+    }));
+  } else {
+    raiseHandBtn.textContent = 'Raise Hand';
+    socket.send(JSON.stringify({ 
+      type: 'lower-hand'
+    }));
+  }
 });
 
 // Handle media access permission
